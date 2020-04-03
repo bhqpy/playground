@@ -1,25 +1,47 @@
-from pylite.simplite import Pylite
 import glob
 import os.path
-database = 'database/dbname.sqlite'
-tools = 'tools/*.sql'
+import sqlite3
+import datetime
 
 
-def createDB(func_database, func_tools):
-    db = Pylite(func_database)
+database = 'database/novatime.s3db'
+tools = 'tools/create*.sql'
+
+
+def createZeitDB(func_database, func_tools):
+    conn = sqlite3.connect(func_database)
+    c = conn.cursor()
     datei = []
 
     for datei in glob.glob(func_tools):
         with open(datei, 'r') as file:
             data = file.read().replace('\n', '')
-            db.query(data)
+            c.executescript(data)
 
-    db.close_connection()
+    conn.commit()
+    conn.close()
 
+def todays_zeitDB_field():
+    return datetime.date.today().strftime('D%d%m')
+
+# End of definitions
 if not os.path.isfile(database):
 
-    createDB(database, tools)
+    createZeitDB(database, tools)
 else:
-    print ("To be continued ...")
+    conn = sqlite3.connect(database)
+    conn.text_factory = lambda x: str(x, "latin1")
+    c = conn.cursor()
+    c.execute("select * from Liste_Tagesjournalaktuellanwesend where AuswNr>1")
 
-
+    anwesend = c.fetchall()
+    c.execute("select * from Liste_Tagesjournalaktuellabwesend where AuswNr>1")
+    abwesend = c.fetchall()
+    c.execute("select PersNr,Name,D2302 from Liste_Jahreskartei where PersNr > 1")
+    kartei = c.fetchall()
+    conn.close()
+    print(anwesend)
+    print(abwesend)
+    print(kartei)
+    print(todays_zeitDB_field())
+    print("To be continued ...")
